@@ -1,0 +1,195 @@
+#!/bin/bash
+
+# =========================
+# Install all tools required by .zshrc
+# =========================
+
+set -e
+
+OS="$(uname -s)"
+
+install_brew_package() {
+    local pkg="$1"
+    if ! command -v "$pkg" &>/dev/null; then
+        echo "Installing $pkg..."
+        brew install "$pkg"
+        echo "$pkg installed successfully"
+    else
+        echo "$pkg is already installed"
+    fi
+}
+
+# =========================
+# macOS: ensure Homebrew
+# =========================
+if [[ "$OS" == "Darwin" ]]; then
+    if ! command -v brew &>/dev/null; then
+        echo "Installing Homebrew..."
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    else
+        echo "Homebrew is already installed"
+    fi
+fi
+
+# =========================
+# zoxide
+# =========================
+if ! command -v zoxide &>/dev/null; then
+    echo "Installing zoxide..."
+    if [[ "$OS" == "Darwin" ]]; then
+        brew install zoxide
+    elif [[ "$OS" == "Linux" ]]; then
+        curl -sSf https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | bash
+    fi
+    echo "zoxide installed successfully"
+else
+    echo "zoxide is already installed"
+fi
+
+# =========================
+# fzf
+# =========================
+if ! command -v fzf &>/dev/null; then
+    echo "Installing fzf..."
+    if [[ "$OS" == "Darwin" ]]; then
+        brew install fzf
+    elif [[ "$OS" == "Linux" ]]; then
+        git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
+        ~/.fzf/install --all --no-bash --no-fish
+    fi
+    echo "fzf installed successfully"
+else
+    echo "fzf is already installed"
+fi
+
+# =========================
+# neovim
+# =========================
+if ! command -v nvim &>/dev/null; then
+    echo "Installing neovim..."
+    if [[ "$OS" == "Darwin" ]]; then
+        brew install neovim
+    elif [[ "$OS" == "Linux" ]]; then
+        # Use AppImage for stable release on Linux
+        curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.appimage
+        chmod u+x nvim-linux-x86_64.appimage
+        sudo mv nvim-linux-x86_64.appimage /usr/local/bin/nvim
+    fi
+    echo "neovim installed successfully"
+else
+    echo "neovim is already installed"
+fi
+
+# =========================
+# tmux
+# =========================
+if ! command -v tmux &>/dev/null; then
+    echo "Installing tmux..."
+    if [[ "$OS" == "Darwin" ]]; then
+        brew install tmux
+    elif [[ "$OS" == "Linux" ]]; then
+        sudo apt-get install -y tmux 2>/dev/null || \
+        sudo dnf install -y tmux 2>/dev/null || \
+        sudo pacman -S --noconfirm tmux 2>/dev/null || \
+        echo "Please install tmux manually for your Linux distro"
+    fi
+    echo "tmux installed successfully"
+else
+    echo "tmux is already installed"
+fi
+
+# =========================
+# kitty
+# =========================
+if ! command -v kitty &>/dev/null; then
+    echo "Installing kitty..."
+    if [[ "$OS" == "Darwin" ]]; then
+        brew install --cask kitty
+    elif [[ "$OS" == "Linux" ]]; then
+        curl -L https://sw.kovidgoyal.net/kitty/installer.sh | sh /dev/stdin
+        # Add kitty to PATH
+        ln -sf ~/.local/kitty.app/bin/kitty ~/.local/kitty.app/bin/kitten ~/.local/bin/ 2>/dev/null || true
+    fi
+    echo "kitty installed successfully"
+else
+    echo "kitty is already installed"
+fi
+
+# =========================
+# yazi
+# =========================
+if ! command -v yazi &>/dev/null; then
+    echo "Installing yazi..."
+    if [[ "$OS" == "Darwin" ]]; then
+        brew install yazi
+    elif [[ "$OS" == "Linux" ]]; then
+        # Install via cargo if available, otherwise snap/manual
+        if command -v cargo &>/dev/null; then
+            cargo install --locked yazi-fm yazi-cli
+        else
+            echo "yazi: please install Rust/cargo first, then run: cargo install --locked yazi-fm yazi-cli"
+            echo "  or visit: https://yazi-rs.github.io/docs/installation"
+        fi
+    fi
+    echo "yazi installed successfully"
+else
+    echo "yazi is already installed"
+fi
+
+# =========================
+# starship prompt
+# =========================
+if ! command -v starship &>/dev/null; then
+    echo "Installing starship..."
+    if [[ "$OS" == "Darwin" ]]; then
+        brew install starship
+    elif [[ "$OS" == "Linux" ]]; then
+        curl -sS https://starship.rs/install.sh | sh -s -- -y
+    fi
+    echo "starship installed successfully"
+else
+    echo "starship is already installed"
+fi
+
+# =========================
+# zsh (ensure it's available)
+# =========================
+if ! command -v zsh &>/dev/null; then
+    echo "Installing zsh..."
+    if [[ "$OS" == "Darwin" ]]; then
+        brew install zsh
+    elif [[ "$OS" == "Linux" ]]; then
+        sudo apt-get install -y zsh 2>/dev/null || \
+        sudo dnf install -y zsh 2>/dev/null || \
+        sudo pacman -S --noconfirm zsh 2>/dev/null
+    fi
+    echo "zsh installed successfully"
+else
+    echo "zsh is already installed"
+fi
+
+# =========================
+# git (required by zinit bootstrap)
+# =========================
+if ! command -v git &>/dev/null; then
+    echo "Installing git..."
+    if [[ "$OS" == "Darwin" ]]; then
+        brew install git
+    elif [[ "$OS" == "Linux" ]]; then
+        sudo apt-get install -y git 2>/dev/null || \
+        sudo dnf install -y git 2>/dev/null || \
+        sudo pacman -S --noconfirm git 2>/dev/null
+    fi
+    echo "git installed successfully"
+else
+    echo "git is already installed"
+fi
+
+# =========================
+# Summary
+# =========================
+echo ""
+echo "========================================"
+echo " All tools installed. Reload your shell:"
+echo "   exec zsh"
+echo "========================================"
