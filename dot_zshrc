@@ -1,0 +1,158 @@
+# =========================
+# Zinit Plugin Manager
+# =========================
+
+# Auto-install zinit if not present
+ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"
+if [[ ! -d $ZINIT_HOME ]]; then
+   mkdir -p "$(dirname $ZINIT_HOME)"
+   git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
+fi
+
+# Load zinit
+source "${ZINIT_HOME}/zinit.zsh"
+
+# =========================
+# keymap (vim style)
+# =========================
+bindkey -v
+
+# =========================
+# Zsh Plugins
+# =========================
+
+# Load completions immediately
+zinit light zsh-users/zsh-completions
+
+# fast-syntax-highlighting with turbo
+zinit light zdharma-continuum/fast-syntax-highlighting
+
+# =========================
+# zsh-autosuggestions
+# =========================
+zinit ice wait lucid atload"
+  _zsh_autosuggest_start
+  # 右箭头（直观）
+  bindkey '^[[C' autosuggest-accept
+  # Ctrl+J（主力，不离开主键盘区）
+  bindkey '^J' autosuggest-accept
+"
+zinit light zsh-users/zsh-autosuggestions
+
+# OMZ git plugin (just the plugin)
+zinit snippet OMZP::git
+
+# fzf-tab for interactive tab completion
+zinit light Aloxaf/fzf-tab
+
+# =========================
+# History Configuration
+# =========================
+
+HISTFILE=~/.zsh_history
+HISTSIZE=10000
+SAVEHIST=10000
+
+setopt EXTENDED_HISTORY
+setopt HIST_EXPIRE_DUPS_FIRST
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_ALL_DUPS
+setopt HIST_FIND_NO_DUPS
+setopt HIST_IGNORE_SPACE
+setopt HIST_SAVE_NO_DUPS
+setopt SHARE_HISTORY
+
+# =========================
+# Completion styles
+# =========================
+
+zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
+
+# fzf-tab integration
+zstyle ':completion:*' menu no
+
+# =========================
+# aliases
+# =========================
+
+alias v="nvim"
+alias t='tmux'
+alias y='yazi'
+alias f='fzf'
+
+alias ..='cd ..'
+alias ...='cd ../..'
+alias ....='cd ../../..'
+
+# macOS ls fix
+if ls --color=auto >/dev/null 2>&1; then
+  alias ls='ls --color=auto'
+else
+  alias ls='ls -G'
+fi
+alias ll='ls -lh'
+alias la='ls -lAh'
+
+# Safety nets
+alias rm='rm -i'
+alias cp='cp -i'
+alias mv='mv -i'
+
+# =========================
+# proxy (only for local, not ssh)
+# =========================
+if [[ -z "$SSH_CONNECTION" ]]; then
+  export http_proxy="http://127.0.0.1:7890"
+  export https_proxy="http://127.0.0.1:7890"
+fi
+
+# =========================
+# prompt (starship)
+# =========================
+
+eval "$(starship init zsh)"
+
+# =========================
+# PATH
+# =========================
+
+export PATH="/opt/homebrew/opt/postgresql@17/bin:$PATH"
+export PATH="$HOME/.npm-global/bin:$PATH"
+
+
+# =========================
+# zoxide
+# =========================
+
+if command -v zoxide >/dev/null 2>&1; then
+  eval "$(zoxide init zsh)"
+fi
+
+# =========================
+# fzf
+# =========================
+
+source <(fzf --zsh)
+
+# =========================
+# yazi
+# =========================
+export EDITOR="nvim"
+function y() {
+	local tmp="$(mktemp -t "yazi-cwd.XXXXXX")" cwd
+	command yazi "$@" --cwd-file="$tmp"
+	IFS= read -r -d '' cwd < "$tmp"
+	[ "$cwd" != "$PWD" ] && [ -d "$cwd" ] && builtin cd -- "$cwd"
+	rm -f -- "$tmp"
+}
+
+
+# bun completions
+[ -s "/Users/liuzihao/.bun/_bun" ] && source "/Users/liuzihao/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
+export PATH="$HOME/.local/bin:$PATH"
