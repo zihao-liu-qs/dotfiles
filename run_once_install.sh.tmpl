@@ -8,6 +8,13 @@ set -e
 OS="$(uname -s)"
 
 # =========================
+# Clear proxy env vars
+# ~/.zshrc sets http_proxy/https_proxy to 127.0.0.1:7890 for local use.
+# In a container that port doesn't exist — unset them so git/curl work normally.
+# =========================
+unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY all_proxy ALL_PROXY
+
+# =========================
 # sudo detection
 # Runs a command with sudo only when necessary and available.
 # In root containers (uid=0) or environments without sudo, runs directly.
@@ -148,12 +155,29 @@ if ! command -v kitty &>/dev/null; then
     if [[ "$OS" == "Darwin" ]]; then
         brew install --cask kitty
     elif [[ "$OS" == "Linux" ]]; then
-        # Official installer puts kitty in ~/.local/kitty.app — no sudo needed
-        curl -L https://sw.kovidgoyal.net/kitty/installer.sh | sh /dev/stdin
-        mkdir -p "$HOME/.local/bin"
-        ln -sf "$HOME/.local/kitty.app/bin/kitty" "$HOME/.local/bin/kitty" 2>/dev/null || true
-        ln -sf "$HOME/.local/kitty.app/bin/kitten" "$HOME/.local/bin/kitten" 2>/dev/null || true
-        export PATH="$HOME/.local/bin:$PATH"
+        # Prefer system package manager — avoids the upstream installer's .txz/xz dependency.
+        # kitty is a GUI terminal; in headless/container environments it installs fine
+        # but won't launch without a display — that's expected.
+        if command -v apt-get &>/dev/null; then
+            run apt-get install -y kitty
+        elif command -v dnf &>/dev/null; then
+            run dnf install -y kitty
+        elif command -v pacman &>/dev/null; then
+            run pacman -S --noconfirm kitty
+        else
+            # Last resort: upstream installer — needs xz to extract the tarball
+            if ! command -v xz &>/dev/null; then
+                echo "  WARNING: xz not found and no known package manager available."
+                echo "  Cannot install kitty automatically."
+                echo "  Please install xz-utils or kitty manually: https://sw.kovidgoyal.net/kitty/binary/"
+            else
+                curl -L https://sw.kovidgoyal.net/kitty/installer.sh | sh /dev/stdin
+                mkdir -p "$HOME/.local/bin"
+                ln -sf "$HOME/.local/kitty.app/bin/kitty"  "$HOME/.local/bin/kitty"  2>/dev/null || true
+                ln -sf "$HOME/.local/kitty.app/bin/kitten" "$HOME/.local/bin/kitten" 2>/dev/null || true
+                export PATH="$HOME/.local/bin:$PATH"
+            fi
+        fi
     fi
     echo "kitty installed successfully"
 else
