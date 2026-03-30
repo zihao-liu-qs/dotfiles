@@ -118,11 +118,23 @@ if ! command -v nvim &>/dev/null; then
         brew install neovim
     elif [[ "$OS" == "Linux" ]]; then
         # AppImage installs to ~/.local/bin — no sudo needed
-        mkdir -p "$HOME/.local/bin"
-        curl -Lo "$HOME/.local/bin/nvim" \
-            https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.appimage
-        chmod u+x "$HOME/.local/bin/nvim"
-        export PATH="$HOME/.local/bin:$PATH"
+        # Pick the right binary for the current CPU architecture
+        ARCH="$(uname -m)"
+        case "$ARCH" in
+            x86_64)  NVIM_BIN="nvim-linux-x86_64.appimage" ;;
+            aarch64) NVIM_BIN="nvim-linux-arm64.appimage"  ;;
+            *)
+                echo "neovim: unsupported arch $ARCH, please install manually"
+                NVIM_BIN=""
+                ;;
+        esac
+        if [[ -n "$NVIM_BIN" ]]; then
+            mkdir -p "$HOME/.local/bin"
+            curl -Lo "$HOME/.local/bin/nvim" \
+                "https://github.com/neovim/neovim/releases/latest/download/$NVIM_BIN"
+            chmod u+x "$HOME/.local/bin/nvim"
+            export PATH="$HOME/.local/bin:$PATH"
+        fi
     fi
     echo "neovim installed successfully"
 else
@@ -147,64 +159,6 @@ else
     echo "tmux is already installed"
 fi
 
-# =========================
-# kitty
-# =========================
-if ! command -v kitty &>/dev/null; then
-    echo "Installing kitty..."
-    if [[ "$OS" == "Darwin" ]]; then
-        brew install --cask kitty
-    elif [[ "$OS" == "Linux" ]]; then
-        # Prefer system package manager — avoids the upstream installer's .txz/xz dependency.
-        # kitty is a GUI terminal; in headless/container environments it installs fine
-        # but won't launch without a display — that's expected.
-        if command -v apt-get &>/dev/null; then
-            run apt-get install -y kitty
-        elif command -v dnf &>/dev/null; then
-            run dnf install -y kitty
-        elif command -v pacman &>/dev/null; then
-            run pacman -S --noconfirm kitty
-        else
-            # Last resort: upstream installer — needs xz to extract the tarball
-            if ! command -v xz &>/dev/null; then
-                echo "  WARNING: xz not found and no known package manager available."
-                echo "  Cannot install kitty automatically."
-                echo "  Please install xz-utils or kitty manually: https://sw.kovidgoyal.net/kitty/binary/"
-            else
-                curl -L https://sw.kovidgoyal.net/kitty/installer.sh | sh /dev/stdin
-                mkdir -p "$HOME/.local/bin"
-                ln -sf "$HOME/.local/kitty.app/bin/kitty"  "$HOME/.local/bin/kitty"  2>/dev/null || true
-                ln -sf "$HOME/.local/kitty.app/bin/kitten" "$HOME/.local/bin/kitten" 2>/dev/null || true
-                export PATH="$HOME/.local/bin:$PATH"
-            fi
-        fi
-    fi
-    echo "kitty installed successfully"
-else
-    echo "kitty is already installed"
-fi
-
-# =========================
-# yazi
-# =========================
-if ! command -v yazi &>/dev/null; then
-    echo "Installing yazi..."
-    if [[ "$OS" == "Darwin" ]]; then
-        brew install yazi
-    elif [[ "$OS" == "Linux" ]]; then
-        if command -v cargo &>/dev/null; then
-            cargo install --locked yazi-fm yazi-cli
-        else
-            echo "yazi: cargo not found. Install Rust first:"
-            echo "  curl https://sh.rustup.rs -sSf | sh"
-            echo "  then: cargo install --locked yazi-fm yazi-cli"
-            echo "  or visit: https://yazi-rs.github.io/docs/installation"
-        fi
-    fi
-    echo "yazi installed successfully"
-else
-    echo "yazi is already installed"
-fi
 
 # =========================
 # starship prompt
